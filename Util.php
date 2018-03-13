@@ -330,33 +330,6 @@ class Util
         }
     }
 
-    /**
-     * checks if AmazonPay is enabled
-     *
-     * @return bool
-     */
-    public function isAmazonPayActive()
-    {
-        $payment = Shopware()->Models()->getRepository('Shopware\Models\Payment\Payment')->findOneBy(
-            ['name' => 'fatchip_computop_amazonpay']
-        );
-        return $payment->getActive();
-    }
-
-    /**
-     * checks if Papyal is enabled
-     * ToDO refactor to generic method
-     *
-     * @return bool
-     */
-    public function isPaypalExpressActive()
-    {
-        $payment = Shopware()->Models()->getRepository('Shopware\Models\Payment\Payment')->findOneBy(
-            ['name' => 'fatchip_computop_paypal_express']
-        );
-        return $payment->getActive();
-    }
-
     public function needSocialSecurityNumberForKlarna() {
         if ($countryIso = $this->getBillingIsoForCurrentOrder()) {
             //only if billingcountry in DK, FI, SE, NO we show the social security number field

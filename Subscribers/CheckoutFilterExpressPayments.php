@@ -26,13 +26,9 @@
 namespace Shopware\Plugins\FatchipCTPayment\Subscribers;
 
 use Enlight\Event\SubscriberInterface;
-use Shopware\Plugins\FatchipCTPayment\Util;
 
 class CheckoutFilterExpressPayments implements SubscriberInterface
 {
-    /** @var Util $utils * */
-    protected $utils;
-
     const expressPayments = [
         'fatchip_computop_amazonpay',
         'fatchip_computop_paypal_express',

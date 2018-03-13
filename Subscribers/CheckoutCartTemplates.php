@@ -26,14 +26,9 @@
 namespace Shopware\Plugins\FatchipCTPayment\Subscribers;
 
 use Enlight\Event\SubscriberInterface;
-use Shopware\Plugins\FatchipCTPayment\Util;
 
 class CheckoutCartTemplates implements SubscriberInterface
 {
-
-    /** @var Util $utils * */
-    protected $utils;
-
     /**
      * @return array<string,string>
      */
@@ -46,7 +41,6 @@ class CheckoutCartTemplates implements SubscriberInterface
 
     public function extendCartTemplates(\Enlight_Controller_ActionEventArgs $args)
     {
-        $this->utils = Shopware()->Container()->get('FatchipCTPaymentUtils');
         $pluginConfig = Shopware()->Plugins()->Frontend()->FatchipCTPayment()->Config()->toArray();
         $subject = $args->getSubject();
         $view = $subject->View();
@@ -57,16 +51,29 @@ class CheckoutCartTemplates implements SubscriberInterface
             return;
         }
 
-        if ($this->utils->isAmazonPayActive()) {
+        if ($this->isPaymentActive('fatchip_computop_amazonpay')) {
             $view->assign('fatchipCTPaymentConfig', $pluginConfig);
             $view->extendsTemplate('frontend/checkout/ajax_cart_amazon.tpl');
             $view->extendsTemplate('frontend/checkout/cart_amazon.tpl');
         }
 
-        if ($this->utils->isPaypalExpressActive()) {
+        if ($this->isPaymentActive('fatchip_computop_paypal_express')) {
             $view->assign('fatchipCTPaymentConfig', $pluginConfig);
             $view->extendsTemplate('frontend/checkout/ajax_cart_paypal.tpl');
             $view->extendsTemplate('frontend/checkout/cart_paypal.tpl');
         }
+    }
+
+    /**
+     * checks if a payment is enabled in backend settings
+     * @param $paymentName string
+     * @return bool
+     */
+    public function isPaymentActive($paymentName)
+    {
+        $payment = Shopware()->Models()->getRepository('Shopware\Models\Payment\Payment')->findOneBy(
+            ['name' => $paymentName]
+        );
+        return $payment->getActive();
     }
 }
