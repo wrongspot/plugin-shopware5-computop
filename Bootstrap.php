@@ -131,6 +131,7 @@ class Shopware_Plugins_Frontend_FatchipCTPayment_Bootstrap extends Shopware_Comp
             new Shopware\Plugins\FatchipCTPayment\Subscribers\CheckoutAfterPayment(),
             new Shopware\Plugins\FatchipCTPayment\Subscribers\CheckoutFilterExpressPayments(),
             new Shopware\Plugins\FatchipCTPayment\Subscribers\CheckoutFilterKlarnaPayments(),
+            new Shopware\Plugins\FatchipCTPayment\Subscribers\CheckoutCartTemplates(),
             new Shopware\Plugins\FatchipCTPayment\Subscribers\CheckoutPostDispatch(),
             new Shopware\Plugins\FatchipCTPayment\Subscribers\BackendRiskManagement($container),
             new Shopware\Plugins\FatchipCTPayment\Subscribers\FrontendRiskManagement($container),

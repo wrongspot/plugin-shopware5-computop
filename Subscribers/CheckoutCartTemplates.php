@@ -28,15 +28,11 @@ namespace Shopware\Plugins\FatchipCTPayment\Subscribers;
 use Enlight\Event\SubscriberInterface;
 use Shopware\Plugins\FatchipCTPayment\Util;
 
-class CheckoutFilterKlarnaPayments implements SubscriberInterface
+class CheckoutCartTemplates implements SubscriberInterface
 {
+
     /** @var Util $utils * */
     protected $utils;
-
-    const klarnaPayments = [
-        'fatchip_computop_klarna_invoice',
-        'fatchip_computop_klarna_installment',
-    ];
 
     /**
      * @return array<string,string>
@@ -44,31 +40,33 @@ class CheckoutFilterKlarnaPayments implements SubscriberInterface
     public static function getSubscribedEvents()
     {
         return array(
-            'Enlight_Controller_Action_PostDispatch_Frontend_Checkout' => 'filterKlarnaPayments',
+            'Enlight_Controller_Action_PostDispatch_Frontend_Checkout' => 'extendCartTemplates',
         );
     }
 
-    public function filterKlarnaPayments(\Enlight_Controller_ActionEventArgs $args)
+    public function extendCartTemplates(\Enlight_Controller_ActionEventArgs $args)
     {
         $this->utils = Shopware()->Container()->get('FatchipCTPaymentUtils');
+        $pluginConfig = Shopware()->Plugins()->Frontend()->FatchipCTPayment()->Config()->toArray();
         $subject = $args->getSubject();
         $view = $subject->View();
         $request = $subject->Request();
         $response = $subject->Response();
-        $userData = Shopware()->Modules()->Admin()->sGetUserData();
 
         if (!$request->isDispatched() || $response->isException()) {
             return;
         }
 
-        if ($request->getActionName() == 'shippingPayment') {
-            $payments = $view->getAssign('sPayments');
-            foreach ($payments as $index => $payment) {
-                if (in_array($payment['name'], self::klarnaPayments) && $this->utils->isKlarnaBlocked($userData)) {
-                    unset ($payments[$index]);
-                }
-            }
-            $view->assign('sPayments', $payments);
+        if ($this->utils->isAmazonPayActive()) {
+            $view->assign('fatchipCTPaymentConfig', $pluginConfig);
+            $view->extendsTemplate('frontend/checkout/ajax_cart_amazon.tpl');
+            $view->extendsTemplate('frontend/checkout/cart_amazon.tpl');
+        }
+
+        if ($this->utils->isPaypalExpressActive()) {
+            $view->assign('fatchipCTPaymentConfig', $pluginConfig);
+            $view->extendsTemplate('frontend/checkout/ajax_cart_paypal.tpl');
+            $view->extendsTemplate('frontend/checkout/cart_paypal.tpl');
         }
     }
 }

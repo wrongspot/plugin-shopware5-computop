@@ -44,11 +44,11 @@ class CheckoutFilterExpressPayments implements SubscriberInterface
     public static function getSubscribedEvents()
     {
         return array(
-            'Enlight_Controller_Action_PostDispatch_Frontend_Checkout' => 'onPostdispatchFrontendCheckout',
+            'Enlight_Controller_Action_PostDispatch_Frontend_Checkout' => 'filterExpressPayments',
         );
     }
 
-    public function onPostdispatchFrontendCheckout(\Enlight_Controller_ActionEventArgs $args)
+    public function filterExpressPayments(\Enlight_Controller_ActionEventArgs $args)
     {
         $subject = $args->getSubject();
         $view = $subject->View();
