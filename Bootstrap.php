@@ -26,7 +26,6 @@ use Shopware\Plugins\FatchipCTPayment\Bootstrap\Payments;
 use Shopware\Plugins\FatchipCTPayment\Bootstrap\Menu;
 use Shopware\Plugins\FatchipCTPayment\Bootstrap\RiskRules;
 use Shopware\Plugins\FatchipCTPayment\Bootstrap\Models;
-use Doctrine\Common\Collections\ArrayCollection;
 
 
 class Shopware_Plugins_Frontend_FatchipCTPayment_Bootstrap extends Shopware_Components_Plugin_Bootstrap
@@ -66,8 +65,6 @@ class Shopware_Plugins_Frontend_FatchipCTPayment_Bootstrap extends Shopware_Comp
         $riskRules->createRiskRules();
         $models->createModels();
 
-        $this->registerJavascript();
-
         $this->subscribeEvent('Enlight_Controller_Front_DispatchLoopStartup', 'onStartDispatch');
 
         //$this->updateSchema();
@@ -82,27 +79,6 @@ class Shopware_Plugins_Frontend_FatchipCTPayment_Bootstrap extends Shopware_Comp
         $this->Application()->Snippets()->addConfigDir(
             $this->Path() . 'Snippets/'
         );
-    }
-
-    /**
-     * Registers the js files in less compiler
-     * use for amazon and paypal express jquery plugins
-     */
-    public function registerJavascript()
-    {
-        $this->subscribeEvent(
-            'Theme_Compiler_Collect_Plugin_Javascript',
-            'addJsFiles'
-        );
-    }
-
-    public function addJsFiles(Enlight_Event_EventArgs $args)
-    {
-        $jsFiles = [
-            $this->Path() . 'Views/responsive/frontend/_resources/javascript/fatchipCTAmazon.js',
-            $this->Path() . 'Views/responsive/frontend/_resources/javascript/fatchipCTPaypalExpress.js',
-        ];
-        return new ArrayCollection($jsFiles);
     }
 
     /**
@@ -158,6 +134,8 @@ class Shopware_Plugins_Frontend_FatchipCTPayment_Bootstrap extends Shopware_Comp
             new Shopware\Plugins\FatchipCTPayment\Subscribers\FrontendRiskManagement($container),
             new Shopware\Plugins\FatchipCTPayment\Subscribers\BackendOrder($container),
             new Shopware\Plugins\FatchipCTPayment\Subscribers\Logger(),
+            new Shopware\Plugins\FatchipCTPayment\Subscribers\Less(),
+            new Shopware\Plugins\FatchipCTPayment\Subscribers\Javascript(),
         ];
 
         foreach ($subscribers as $subscriber) {

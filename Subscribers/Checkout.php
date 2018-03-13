@@ -26,7 +26,6 @@
 namespace Shopware\Plugins\FatchipCTPayment\Subscribers;
 
 use Enlight\Event\SubscriberInterface;
-use Shopware\Components\Theme\LessDefinition;
 use Shopware\Plugins\FatchipCTPayment\Util;
 
 class Checkout implements SubscriberInterface
@@ -43,7 +42,6 @@ class Checkout implements SubscriberInterface
         return array(
             'Shopware_Controllers_Frontend_Checkout::saveShippingPaymentAction::after' => 'onAfterPaymentAction',
             'Enlight_Controller_Action_PostDispatch_Frontend_Checkout' => 'onPostdispatchFrontendCheckout',
-            'Theme_Compiler_Collect_Plugin_Less' => 'onThemeCompilerCollectPluginLess',
         );
     }
 
