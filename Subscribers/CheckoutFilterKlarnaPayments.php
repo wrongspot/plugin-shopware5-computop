@@ -28,10 +28,15 @@ namespace Shopware\Plugins\FatchipCTPayment\Subscribers;
 use Enlight\Event\SubscriberInterface;
 use Shopware\Plugins\FatchipCTPayment\Util;
 
-class CheckoutFilterPayments implements SubscriberInterface
+class CheckoutFilterKlarnaPayments implements SubscriberInterface
 {
     /** @var Util $utils * */
     protected $utils;
+
+    const klarnaPayments = [
+        'fatchip_computop_klarna_invoice',
+        'fatchip_computop_klarna_installment',
+    ];
 
     /**
      * @return array<string,string>
@@ -50,41 +55,19 @@ class CheckoutFilterPayments implements SubscriberInterface
         $view = $subject->View();
         $request = $subject->Request();
         $response = $subject->Response();
+        $userData = Shopware()->Modules()->Admin()->sGetUserData();
 
         if (!$request->isDispatched() || $response->isException()) {
             return;
         }
 
         if ($request->getActionName() == 'shippingPayment') {
-
             $payments = $view->getAssign('sPayments');
-
             foreach ($payments as $index => $payment) {
-                if ($payment['name'] === 'fatchip_computop_amazonpay') {
-                    $amazonPayIndex = $index;
-                }
-                if ($payment['name'] === 'fatchip_computop_paypal_express') {
-                    $paypalExpressIndex = $index;
-                }
-                if ($payment['name'] === 'fatchip_computop_klarna_invoice') {
-                    $klarnaInvoiceIndex = $index;
-                }
-                if ($payment['name'] === 'fatchip_computop_klarna_installment') {
-                    $klarnaInstallmentIndex = $index;
+                if (in_array($payment['name'], self::klarnaPayments) && $this->utils->isKlarnaBlocked($userData)) {
+                    unset ($payments[$index]);
                 }
             }
-
-            // AmazonPay and Paypal Express are never shown in payment list
-            unset ($payments[$amazonPayIndex]);
-            unset ($payments[$paypalExpressIndex]);
-
-
-            $userData = Shopware()->Modules()->Admin()->sGetUserData();
-            if ($this->utils->isKlarnaBlocked($userData)) {
-                unset ($payments[$klarnaInvoiceIndex]);
-                unset ($payments[$klarnaInstallmentIndex]);
-            }
-
             $view->assign('sPayments', $payments);
         }
     }
