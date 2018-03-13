@@ -30,10 +30,6 @@ use Shopware\Components\Theme\LessDefinition;
 
 class Less implements SubscriberInterface
 {
-
-    /** @var Util $utils * */
-    protected $utils;
-
     /**
      * @return array<string,string>
      */
