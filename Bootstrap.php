@@ -118,7 +118,6 @@ class Shopware_Plugins_Frontend_FatchipCTPayment_Bootstrap extends Shopware_Comp
     public function onStartDispatch(Enlight_Event_EventArgs $args)
     {
         $this->registerComponents();
-        //$this->registerTemplateDir();
         $this->registerSnippets();
 
         //TODO: Schauen ob wirklich gebraucht wird.
