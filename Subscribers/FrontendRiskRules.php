@@ -171,13 +171,6 @@ class FrontendRiskRules implements SubscriberInterface
         $crifStatus = $this->getCrifStatusFromAddressArray($addressArray);
         $crifDate = $this->getCrifDateFromAddressArray($addressArray);
         $crifResult = $this->getCrifResultFromAddressArray($addressArray);
-        //if crif is not responding (FAILED), or INVALID (0) we try again after one hour to prevent making hundreds of calls
-        //In Adressarray there are underscores in attribute nmaes
-        if ($crifStatus == 'FAILED' || $crifStatus == '0') {
-            $lastTimeChecked = $this->getCrifDateFromAddressArray($addressArray);
-            $hoursPassed = $lastTimeChecked->diff(new \DateTime('now'), true)->hours;
-            return $hoursPassed > 1;
-        }
 
         //check in Session if CRIF data are missing.
         if (!isset($crifResult)) {
@@ -202,9 +195,7 @@ class FrontendRiskRules implements SubscriberInterface
 
         //if CRIF data IS saved in both addresses, check if the are expired,
         //that means, they are older then the number of days set in Pluginsettings
-        $plugin = Shopware()->Plugins()->Frontend()->FatchipCTPayment();
-        $config = $plugin->Config()->toArray();
-        $invalidateAfterDays = $config['bonitaetinvalidateafterdays'];
+        $invalidateAfterDays = $this->config['bonitaetinvalidateafterdays'];
         if (is_numeric($invalidateAfterDays) && $invalidateAfterDays > 0) {
             /** @var \DateTime $lastTimeChecked */
             $lastTimeChecked = $this->getCrifDateFromAddressArray($addressArray);
@@ -215,7 +206,6 @@ class FrontendRiskRules implements SubscriberInterface
                 return true;
             }
         }
-
         return false;
     }
 
@@ -224,13 +214,13 @@ class FrontendRiskRules implements SubscriberInterface
         // SW 5.0
         if (array_key_exists('fatchipCTCrifstatus', $aAddress)) {
             return $aAddress['fatchipCTCrifstatus'];
-        } // SW 5.3, SW 5.4
+        } // SW5.2?, SW 5.3, SW 5.4?
         else if (array_key_exists('fatchipct_crifstatus', $aAddress['attributes'])) {
             return $aAddress['attributes']['fatchipct_crifstatus'];
         } // SW 5.2
         else if (array_key_exists('fatchipCT_crifstatus', $aAddress['attributes'])) {
             return $aAddress['attributes']['fatchipCT_crifstatus'];
-        } // SW 5.1
+        } // SW 5.0, 5.1?
         else if (array_key_exists('fatchipctCrifstatus', $aAddress)) {
             return $aAddress['fatchipctCrifstatus'];
         }
@@ -242,13 +232,13 @@ class FrontendRiskRules implements SubscriberInterface
         // SW 5.0
         if (array_key_exists('fatchipCTCrifresult', $aAddress)) {
             return $aAddress['fatchipCTCrifresult'];
-        } // SW 5.3, SW 5.4
+        } // SW5.2?, SW 5.3, SW 5.4?
         else if (array_key_exists('fatchipct_crifresult', $aAddress['attributes'])) {
             return $aAddress['attributes']['fatchipct_crifresult'];
         } // SW 5.2
         else if (array_key_exists('fatchipCT_crifresult', $aAddress['attributes'])) {
             return $aAddress['attributes']['fatchipCT_crifresult'];
-        } // SW 5.1
+        } // SW 5.0, 5.1?
         else if (array_key_exists('fatchipctCrifresult', $aAddress)) {
             return $aAddress['fatchipctCrifresult'];
         }
@@ -261,7 +251,7 @@ class FrontendRiskRules implements SubscriberInterface
         if (array_key_exists('fatchipCTCrifdate', $aAddress)) {
             return $aAddress['fatchipCTCrifdate'] instanceof \DateTime ?
                 $aAddress['fatchipCTCrifdate'] : new \DateTime($aAddress['fatchipCTCrifdate']);
-        } // SW 5.3, SW 5.4
+        }// SW5.2?, SW 5.3, SW 5.4?
         else if (array_key_exists('fatchipct_crifdate', $aAddress['attributes'])) {
             return $aAddress['attributes']['fatchipct_crifdate'] instanceof \DateTime ?
                 $aAddress['attributes']['fatchipct_crifdate'] : new \DateTime($aAddress['attributes']['fatchipct_crifdate']);
@@ -269,14 +259,13 @@ class FrontendRiskRules implements SubscriberInterface
         else if (array_key_exists('fatchipCT_crifdate', $aAddress['attributes'])) {
             return $aAddress['attributes']['fatchipCT_crifdate'] instanceof \DateTime ?
                 $aAddress['attributes']['fatchipCT_crifdate'] : new \DateTime($aAddress['attributes']['fatchipCT_crifdate']);
-        } // SW 5.1
+        } // SW 5.0, 5.1?
         else if (array_key_exists('fatchipctCrifdate', $aAddress)) {
             return $aAddress['fatchipctCrifdate'] instanceof \DateTime ?
                 $aAddress['fatchipctCrifdate'] : new \DateTime($aAddress['fatchipctCrifdate']);
         }
         return null;
     }
-
 
     /**
      * check if user score equals configured score to block payment method
@@ -289,7 +278,6 @@ class FrontendRiskRules implements SubscriberInterface
     {
         return $scoring == $value; //return true if payment has to be denied
     }
-
 
     /**
      * check if user score equals not configured score to block payment method
