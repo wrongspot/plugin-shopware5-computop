@@ -133,13 +133,19 @@ class Shopware_Plugins_Frontend_FatchipCTPayment_Bootstrap extends Shopware_Comp
             new Shopware\Plugins\FatchipCTPayment\Subscribers\CheckoutFilterKlarnaPayments(),
             new Shopware\Plugins\FatchipCTPayment\Subscribers\CheckoutCartTemplates(),
             new Shopware\Plugins\FatchipCTPayment\Subscribers\CheckoutPostDispatch(),
-            new Shopware\Plugins\FatchipCTPayment\Subscribers\BackendRiskManagement($container),
-            new Shopware\Plugins\FatchipCTPayment\Subscribers\FrontendRiskManagement($container),
+            new Shopware\Plugins\FatchipCTPayment\Subscribers\FrontendRiskRules($container),
             new Shopware\Plugins\FatchipCTPayment\Subscribers\BackendOrder($container),
+            new Shopware\Plugins\FatchipCTPayment\Subscribers\BackendRiskManagement($container),
             new Shopware\Plugins\FatchipCTPayment\Subscribers\Logger(),
             new Shopware\Plugins\FatchipCTPayment\Subscribers\Less(),
             new Shopware\Plugins\FatchipCTPayment\Subscribers\Javascript(),
         ];
+
+        if (\Shopware::VERSION === '___VERSION___' || version_compare(\Shopware::VERSION, '5.2.0', '>=')) {
+            $subscribers[] = new Shopware\Plugins\FatchipCTPayment\Subscribers\FrontendRiskOnValidate($container);
+        } else {
+            $subscribers[] = new Shopware\Plugins\FatchipCTPayment\Subscribers\FrontendRiskAfterAddressUpdate($container);
+        }
 
         foreach ($subscribers as $subscriber) {
             $this->Application()->Events()->addSubscriber($subscriber);

@@ -269,11 +269,11 @@ class Util
     }
 
     /**
-     * @param $id
-     * @param $type
+     * @param $id integer
+     * @param $type string | null
      * @return null|object
      */
-    public function getCustomerAddressById($id, $type)
+    public function getCustomerAddressById($id, $type = null)
     {
         if (version_compare(\Shopware::VERSION, '5.2.0', '<')) {
             $address = $type == 'shipping' ? $address = Shopware()->Models()->getRepository('Shopware\Models\Customer\Shipping')->find($id) :
@@ -419,5 +419,42 @@ class Util
 
         return null;
 
+    }
+
+    public function addressWasAutoUpdated()
+    {
+        $return = Shopware()->Session()->offsetExists('fatchipComputopCrifAutoAddressUpdate') ? true : false;
+        Shopware()->Session()->offsetUnset('fatchipComputopCrifAutoAddressUpdate');
+        return $return;
+    }
+
+    /**
+     * @param Address $address
+     *
+     * deletes CRIF attributes from address
+     */
+    public function deleteCrifResult($address)
+    {
+        if ($attribute = $address->getAttribute()) {
+            $attribute->setFatchipctCrifdate(0);
+            $attribute->setFatchipctCrifdescription(null);
+            $attribute->setFatchipctCrifresult(null);
+            $attribute->setFatchipctCrifstatus(null);
+            Shopware()->Models()->persist($attribute);
+            Shopware()->Models()->flush();
+        }
+    }
+
+    public function deleteCrifResultForId($addressID, $type)
+    {
+        $address = $this->getCustomerAddressById($addressID, $type);
+        $this->deleteCrifResult($address);
+    }
+
+    public function addressChanged($oldAddress, $newAddress)
+    {
+        //we consider the address changed if street, zipcode, city or country changed
+        return ($oldAddress['city'] !== $newAddress['city'] || $oldAddress['street'] !== $newAddress['street'] ||
+            $oldAddress['zipcode'] !== $newAddress['zipcode'] || $oldAddress['country'] !== $newAddress['countryID']);
     }
 }

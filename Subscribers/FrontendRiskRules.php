@@ -13,7 +13,7 @@ use Shopware\Plugins\FatchipCTPayment\Util;
  *
  * @package Shopware\Plugins\MoptPaymentPayone\Subscribers
  */
-class FrontendRiskManagement implements SubscriberInterface
+class FrontendRiskRules implements SubscriberInterface
 {
 
     /**
@@ -22,6 +22,15 @@ class FrontendRiskManagement implements SubscriberInterface
      * @var Container
      */
     private $container;
+
+    /** @var Util $utils * */
+    private $utils;
+
+    private $service;
+
+    private $plugin;
+
+    private $config;
 
     /**
      * inject di container
@@ -34,122 +43,17 @@ class FrontendRiskManagement implements SubscriberInterface
     }
 
     /**
-     * return array with all subsribed events
-     *
-     * @return array
+     * @return array<string,string>
      */
     public static function getSubscribedEvents()
     {
-
-        $events = ['sAdmin::executeRiskRule::replace' => 'onExecuteRiskRule',];
-
-        if (\Shopware::VERSION === '___VERSION___' || version_compare(\Shopware::VERSION, '5.2.0', '>=')) {
-            $events['Shopware\Models\Customer\Address::postUpdate'] = 'afterAddressUpdate';
-        } else {
-            $events['Shopware_Modules_Admin_ValidateStep2Shipping_FilterResult'] = 'onValidateStep2ShippingAddress';
-            $events['Shopware_Modules_Admin_ValidateStep2_FilterResult'] = 'onValidateStep2BillingAddress';
-        }
-
-        return $events;
-    }
-
-
-    /***
-     * @param \Enlight_Hook_HookArgs $args
-     *
-     * Fired after a user updates an address in SW >=5.2 If a CRIF result is available, it will be
-     * invalidated / deleted
-     */
-    public function afterAddressUpdate(\Enlight_Hook_HookArgs $args)
-    {
-        //check in Session if we autoupated the address with the corrected Address from CRIF
-        if (!$this->addressWasAutoUpdated()) {
-            /** @var \Shopware\Models\Customer\Address $model */
-            $model = $args->getEntity();
-            $this->invalidateCrifFOrAddress($model);
-        }
-    }
-
-
-    public function onValidateStep2BillingAddress(\Enlight_Hook_HookArgs $arguments)
-    {
-        //check in Session if we autoupated the address with the corrected Address from CRIF
-        if (!$this->addressWasAutoUpdated()) {
-            $session = Shopware()->Session();
-            $orderVars = Shopware()->Session()->sOrderVariables;
-            $userData = $orderVars['sUserData'];
-            $oldBillingAddress = $userData['billingaddress'];
-            $customerBillingId = $userData['billingaddress']['customerBillingId'];
-
-            //postdata contains the new addressdata that the user just entered
-            $postData = $arguments->get('post');
-
-            if (!empty($customerBillingId) && $this->addressChanged($postData, $oldBillingAddress)) {
-                $this->invalidateCrifResult($customerBillingId, 'billing');
-            }
-        }
-    }
-
-    public function onValidateStep2ShippingAddress(\Enlight_Hook_HookArgs $arguments)
-    {
-        //check in Session if we autoupated the address with the corrected Address from CRIF
-        if (!$this->addressWasAutoUpdated()) {
-            $session = Shopware()->Session();
-            $orderVars = Shopware()->Session()->sOrderVariables;
-            $userData = $orderVars['sUserData'];
-            $oldShippingAddress = $userData['shippingaddress'];
-            $customerShippingId = $userData['shippingaddress']['customerShippingId'];
-
-            //postdata contains the new addressdata that the user just entered
-            $postData = $arguments->get('post');
-
-            if (!empty($customerShippingId) && $this->addressChanged($postData, $oldShippingAddress)) {
-                $this->invalidateCrifResult($customerShippingId, 'shipping');
-            }
-        }
-    }
-
-    private function addressChanged($oldAddress, $newAddress)
-    {
-        //we consider the address changed if street, zipcode, city or country changed
-        return ($oldAddress['city'] !== $newAddress['city'] || $oldAddress['street'] !== $newAddress['street'] ||
-            $oldAddress['zipcode'] !== $newAddress['zipcode'] || $oldAddress['country'] !== $newAddress['countryID']);
+        return [
+            'sAdmin::executeRiskRule::replace' => 'onExecuteRiskRule',
+        ];
     }
 
     /**
-     * @param \Shopware\Models\Customer\Address $address
-     *
-     * removes CRIF results from Address
-     */
-    private function invalidateCrifFOrAddress($address)
-    {
-        /* @var \Shopware\Models\Customer\Address $address */
-        if ($attribute = $address->getAttribute()) {
-            $attribute->setFatchipctCrifdate(0);
-            $attribute->setFatchipctCrifdescription(null);
-            $attribute->setFatchipctCrifresult(null);
-            $attribute->setFatchipctCrifstatus(null);
-            Shopware()->Models()->persist($attribute);
-            Shopware()->Models()->flush();
-        }
-    }
-
-    private function invalidateCrifResult($addressID, $type)
-    {
-        $util = new Util();
-        $address = $util->getCustomerAddressById($addressID, $type);
-        if ($attribute = $address->getAttribute()) {
-            $attribute->setFatchipctCrifdate(0);
-            $attribute->setFatchipctCrifdescription(null);
-            $attribute->setFatchipctCrifresult(null);
-            $attribute->setFatchipctCrifstatus(null);
-            Shopware()->Models()->persist($attribute);
-            Shopware()->Models()->flush();
-        }
-    }
-
-    /**
-     * handle rules beginning with 'sRiskMOPT_PAYONE__'
+     * handle rules beginning with 'sRiskFATCHIP_COMPUTOP__'
      * returns true if risk condition is fulfilled
      * arguments: $rule, $user, $basket, $value
      *
@@ -158,11 +62,13 @@ class FrontendRiskManagement implements SubscriberInterface
     public function onExecuteRiskRule(\Enlight_Hook_HookArgs $arguments)
     {
         $rule = $arguments->get('rule');
-
+        //$value contains the value that we want to compare with, as set in the SW Riskmanagement Backend Rule
+        $value = $arguments->get('value');
+        $basket = $arguments->get('basket');
         $user = $arguments->get('user');
 
         // execute parent call if rule is not Computop
-        if (strpos($rule, 'sRiskFATCHIP_COMPUTOP__') !== 0) {
+        if (!$this->isComputopRiskRule($rule)) {
             $arguments->setReturn(
                 $arguments->getSubject()->executeParent(
                     $arguments->getMethod(),
@@ -170,36 +76,18 @@ class FrontendRiskManagement implements SubscriberInterface
                 )
             );
         } else {
+            $this->utils = $this->container->get('FatchipCTPaymentUtils');
+            $this->service = $this->container->get('FatchipCTPaymentApiClient');
+            $this->plugin = Shopware()->Plugins()->Frontend()->FatchipCTPayment();
+            $this->config = $this->plugin->Config()->toArray();
 
-            /** @var Fatchip\CTPayment\CTPaymentService $service */
-            $service = Shopware()->Container()->get('FatchipCTPaymentApiClient');
-            $plugin = Shopware()->Plugins()->Frontend()->FatchipCTPayment();
-            $config = $plugin->Config()->toArray();
-            //only execute riskcheck if a CRIF method is set in config.
-            if (!isset($config['crifmethod']) || $config['crifmethod'] == 'inactive') {
+            $test3 = !$this->isCrifActive($this->config);
+            $test4 = !$this->isUserAvailable($user);
+            if (!$this->isCrifActive($this->config) || !$this->isUserAvailable($user)) {
                 $arguments->setReturn(FALSE);
                 return;
             }
 
-
-            //$value contains the value that we want to compare with, as set in the SW Riskmanagment Backend Rule
-            $value = $arguments->get('value');
-            $basket = $arguments->get('basket');
-            $user = $arguments->get('user');
-
-            $userId = $user['additional']['user']['id'] ? $user['additional']['user']['id'] : null;
-            $userObject = $userId ? Shopware()->Models()
-                ->getRepository('Shopware\Models\Customer\Customer')
-                ->find($userId) : null;
-
-            //If we don't have a userobject yet, there is no point in doing a risk check
-            if (!$userObject) {
-                $arguments->setReturn(FALSE);
-
-                return;
-            }
-
-            //only make a call to the CRIF service if Necessary
             if ($this->crifCheckNecessary($user['billingaddress'], 'billing')) {
 
                 $billingAddressData = $user['billingaddress'];
@@ -207,35 +95,28 @@ class FrontendRiskManagement implements SubscriberInterface
                 $shippingAddressData = $user['shippingaddress'];
                 $shippingAddressData['country'] = $billingAddressData['countryId'];
 
-                $util = new Util();
-
                 $ctOrder = new CTOrder();
                 $ctOrder->setAmount($basket['AmountNumeric'] * 100);
                 $ctOrder->setCurrency(Shopware()->Container()->get('currency')->getShortName());
-                $ctOrder->setBillingAddress($util->getCTAddress($user['billingaddress']));
-                $ctOrder->setShippingAddress($util->getCTAddress($user['shippingaddress']));
+                $ctOrder->setBillingAddress($this->utils->getCTAddress($user['billingaddress']));
+                $ctOrder->setShippingAddress($this->utils->getCTAddress($user['shippingaddress']));
                 $ctOrder->setEmail($user['additional']['user']['email']);
                 $ctOrder->setCustomerID($user['additional']['user']['id']);
 
                 //TODO: Set orderDesc and Userdata
                 /** @var CRIF $crif */
-                $crif = $service->getCRIFClass($config, $ctOrder, 'testOrder', 'testUserData');
+                $crif = $this->service->getCRIFClass($this->config, $ctOrder, 'testOrder', 'testUserData');
                 $crifParams = $crif->getRedirectUrlParams();
-                $crifResponse = $plugin->callComputopCRIFService($crifParams, $crif, 'CRIF', $crif->getCTPaymentURL());
+                $crifResponse = $this->plugin->callComputopCRIFService($crifParams, $crif, 'CRIF', $crif->getCTPaymentURL());
 
-                /** @var \Fatchip\CTPayment\CTResponse\CTResponse $crifResponse */
                 $status = $crifResponse->getStatus();
                 $callResult = $crifResponse->getResult();
                 //write the result to the session for this billingaddressID
                 $crifInformation[$billingAddressData['id']] = $this->getCRIFResponseArray($crifResponse);
                 //and save the resul in the billingaddress
-                $util->saveCRIFResultInAddress($billingAddressData['id'], 'billing', $crifResponse);
+                $this->utils->saveCRIFResultInAddress($billingAddressData['id'], 'billing', $crifResponse);
                 //$util->saveCRIFResultInAddress($shippingAddressData['id'], 'shipping', $crifResponse);
-
-                //if set in Plugin settings, we have to update the address with the corrected Addressdate
-                $plugin = Shopware()->Plugins()->Frontend()->FatchipCTPayment();
-                $config = $plugin->Config()->toArray();
-                if ($config['bonitaetusereturnaddress']) {
+                if ($this->config['bonitaetusereturnaddress']) {
                     $this->updateBillingAddressFromCrifResponse($billingAddressData['id'], $crifResponse);
                 }
 
@@ -245,10 +126,27 @@ class FrontendRiskManagement implements SubscriberInterface
 
             if ($this->$rule($callResult, $value)) {
                 $arguments->setReturn(TRUE);
-
                 return;
             }
         }
+    }
+
+    private function isComputopRiskRule($rule)
+    {
+        return (strpos($rule, 'sRiskFATCHIP_COMPUTOP__') === 0);
+    }
+
+    private function isCrifActive($config)
+    {
+        $test1 = isset($config['crifmethod']);
+        $test2 = $config['crifmethod'] !== 'inactive';
+        return isset($config['crifmethod']) && $config['crifmethod'] !== 'inactive';
+    }
+
+    private function isUserAvailable($user)
+    {
+        $userId = $user['additional']['user']['id'] ? $user['additional']['user']['id'] : null;
+        return !empty($userId);
     }
 
     private function getCRIFResponseArray($crifResponseObject)
@@ -281,12 +179,11 @@ class FrontendRiskManagement implements SubscriberInterface
             return $hoursPassed > 1;
         }
 
-        $util = new Util();
         //check in Session if CRIF data are missing.
         if (!isset($crifResult)) {
             //If it is not in the session, we also check in the database to prevent multiple calls
             if (isset($addressArray['id'])) {
-                $address = $util->getCustomerAddressById($addressArray['id'], $type);
+                $address = $this->utils->getCustomerAddressById($addressArray['id'], $type);
                 if (!empty($address) && $attribute = $address->getAttribute()) {
                     $attributeData = Shopware()->Models()->toArray($address->getAttribute());
                     //in attributeData there are NO underscores in attribute names and Shopware ads CamelCase after fcct prefix
@@ -412,8 +309,7 @@ class FrontendRiskManagement implements SubscriberInterface
      */
     private function updateBillingAddressFromCrifResponse($addressID, $crifResponse)
     {
-        $util = new Util();
-        if ($address = $util->getCustomerAddressById($addressID, 'billing')) {
+        if ($address = $this->utils->getCustomerAddressById($addressID, 'billing')) {
             //only update the address, if something changed. This check is important, because if nothing changed
             //callin persist and flush does not result in calling afterAddressUpdate and the session variable
             //fatchipComputopCrifAutoAddressUpdate woould not get cleared.
@@ -439,15 +335,5 @@ class FrontendRiskManagement implements SubscriberInterface
 
             }
         }
-    }
-
-    private function addressWasAutoUpdated()
-    {
-        if (Shopware()->Session()->offsetExists('fatchipComputopCrifAutoAddressUpdate')) {
-            Shopware()->Session()->offsetUnset('fatchipComputopCrifAutoAddressUpdate');
-            return true;
-        }
-
-        return false;
     }
 }
