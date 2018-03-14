@@ -28,8 +28,6 @@ class FrontendRiskAfterAddressUpdate implements SubscriberInterface
     public function __construct(Container $container)
     {
         $this->container = $container;
-        // $this->>container->get doesnt work here?
-        $this->utils = Shopware()->Container()->get('FatchipCTPaymentUtils');
     }
 
     /**
@@ -50,6 +48,7 @@ class FrontendRiskAfterAddressUpdate implements SubscriberInterface
      */
     public function afterAddressUpdate(\Enlight_Hook_HookArgs $args)
     {
+        $this->utils = $this->container->get('FatchipCTPaymentUtils');
         if (!$this->utils->addressWasAutoUpdated()) {
             /** @var Address $address */
             $address = $args->getEntity();
