@@ -211,17 +211,11 @@ class FrontendRiskRules implements SubscriberInterface
 
     private function getCrifStatusFromAddressArray($aAddress)
     {
-        // SW 5.0
-        if (array_key_exists('fatchipCTCrifstatus', $aAddress)) {
-            return $aAddress['fatchipCTCrifstatus'];
-        } // SW5.2?, SW 5.3, SW 5.4?
-        else if (array_key_exists('fatchipct_crifstatus', $aAddress['attributes'])) {
+        if (array_key_exists('fatchipct_crifstatus', $aAddress['attributes'])) {
+            // SW 5.2, SW 5.3, SW 5.4
             return $aAddress['attributes']['fatchipct_crifstatus'];
-        } // SW 5.2
-        else if (array_key_exists('fatchipCT_crifstatus', $aAddress['attributes'])) {
-            return $aAddress['attributes']['fatchipCT_crifstatus'];
-        } // SW 5.0, 5.1
-        else if (array_key_exists('fatchipctCrifstatus', $aAddress)) {
+        } else if (array_key_exists('fatchipctCrifstatus', $aAddress)) {
+            // SW 5.0, 5.1
             return $aAddress['fatchipctCrifstatus'];
         }
         return null;
@@ -229,17 +223,11 @@ class FrontendRiskRules implements SubscriberInterface
 
     private function getCrifResultFromAddressArray($aAddress)
     {
-        // SW 5.0
-        if (array_key_exists('fatchipCTCrifresult', $aAddress)) {
-            return $aAddress['fatchipCTCrifresult'];
-        } // SW5.2?, SW 5.3, SW 5.4?
-        else if (array_key_exists('fatchipct_crifresult', $aAddress['attributes'])) {
+        if (array_key_exists('fatchipct_crifresult', $aAddress['attributes'])) {
+            // SW 5.2, SW 5.3, SW 5.4
             return $aAddress['attributes']['fatchipct_crifresult'];
-        } // SW 5.2
-        else if (array_key_exists('fatchipCT_crifresult', $aAddress['attributes'])) {
-            return $aAddress['attributes']['fatchipCT_crifresult'];
-        } // SW 5.0, 5.1
-        else if (array_key_exists('fatchipctCrifresult', $aAddress)) {
+        } else if (array_key_exists('fatchipctCrifresult', $aAddress)) {
+            // SW 5.0, 5.1
             return $aAddress['fatchipctCrifresult'];
         }
         return null;
@@ -247,20 +235,12 @@ class FrontendRiskRules implements SubscriberInterface
 
     private function getCrifDateFromAddressArray($aAddress)
     {
-        // SW 5.0
-        if (array_key_exists('fatchipCTCrifdate', $aAddress)) {
-            return $aAddress['fatchipCTCrifdate'] instanceof \DateTime ?
-                $aAddress['fatchipCTCrifdate'] : new \DateTime($aAddress['fatchipCTCrifdate']);
-        }// SW5.2?, SW 5.3, SW 5.4?
-        else if (array_key_exists('fatchipct_crifdate', $aAddress['attributes'])) {
+        if (array_key_exists('fatchipct_crifdate', $aAddress['attributes'])) {
+            // SW 5.2, SW 5.3, SW 5.4
             return $aAddress['attributes']['fatchipct_crifdate'] instanceof \DateTime ?
                 $aAddress['attributes']['fatchipct_crifdate'] : new \DateTime($aAddress['attributes']['fatchipct_crifdate']);
-        } // SW 5.2
-        else if (array_key_exists('fatchipCT_crifdate', $aAddress['attributes'])) {
-            return $aAddress['attributes']['fatchipCT_crifdate'] instanceof \DateTime ?
-                $aAddress['attributes']['fatchipCT_crifdate'] : new \DateTime($aAddress['attributes']['fatchipCT_crifdate']);
-        } // SW 5.0, 5.1
-        else if (array_key_exists('fatchipctCrifdate', $aAddress)) {
+        } else if (array_key_exists('fatchipctCrifdate', $aAddress)) {
+            // SW 5.0, 5.1
             return $aAddress['fatchipctCrifdate'] instanceof \DateTime ?
                 $aAddress['fatchipctCrifdate'] : new \DateTime($aAddress['fatchipctCrifdate']);
         }
