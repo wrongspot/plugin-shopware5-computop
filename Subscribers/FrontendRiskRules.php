@@ -220,7 +220,7 @@ class FrontendRiskRules implements SubscriberInterface
         } // SW 5.2
         else if (array_key_exists('fatchipCT_crifstatus', $aAddress['attributes'])) {
             return $aAddress['attributes']['fatchipCT_crifstatus'];
-        } // SW 5.0, 5.1?
+        } // SW 5.0, 5.1
         else if (array_key_exists('fatchipctCrifstatus', $aAddress)) {
             return $aAddress['fatchipctCrifstatus'];
         }
@@ -238,7 +238,7 @@ class FrontendRiskRules implements SubscriberInterface
         } // SW 5.2
         else if (array_key_exists('fatchipCT_crifresult', $aAddress['attributes'])) {
             return $aAddress['attributes']['fatchipCT_crifresult'];
-        } // SW 5.0, 5.1?
+        } // SW 5.0, 5.1
         else if (array_key_exists('fatchipctCrifresult', $aAddress)) {
             return $aAddress['fatchipctCrifresult'];
         }
@@ -259,7 +259,7 @@ class FrontendRiskRules implements SubscriberInterface
         else if (array_key_exists('fatchipCT_crifdate', $aAddress['attributes'])) {
             return $aAddress['attributes']['fatchipCT_crifdate'] instanceof \DateTime ?
                 $aAddress['attributes']['fatchipCT_crifdate'] : new \DateTime($aAddress['attributes']['fatchipCT_crifdate']);
-        } // SW 5.0, 5.1?
+        } // SW 5.0, 5.1
         else if (array_key_exists('fatchipctCrifdate', $aAddress)) {
             return $aAddress['fatchipctCrifdate'] instanceof \DateTime ?
                 $aAddress['fatchipctCrifdate'] : new \DateTime($aAddress['fatchipctCrifdate']);
